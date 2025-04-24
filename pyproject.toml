@@ -1,0 +1,61 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "analysta"
+dynamic = ["version"]
+description = 'DataFrame Toolkit for Analysts'
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+keywords = []
+authors = [
+  { name = "Diego-Ignacio Ortiz", email = "31400790+dunkel000@users.noreply.github.com" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = ["pandas>=1.4"]
+
+[project.urls]
+Documentation = "https://github.com/Diego-Ignacio Ortiz/analysta#readme"
+Issues = "https://github.com/Diego-Ignacio Ortiz/analysta/issues"
+Source = "https://github.com/Diego-Ignacio Ortiz/analysta"
+
+[tool.hatch.version]
+path = "src/analysta/__about__.py"
+
+[tool.hatch.envs.types]
+extra-dependencies = [
+  "mypy>=1.0.0",
+]
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/analysta tests}"
+
+[tool.coverage.run]
+source_pkgs = ["analysta", "tests"]
+branch = true
+parallel = true
+omit = [
+  "src/analysta/__about__.py",
+]
+
+[tool.coverage.paths]
+analysta = ["src/analysta", "*/analysta/src/analysta"]
+tests = ["tests", "*/analysta/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
