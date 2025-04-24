@@ -5,3 +5,8 @@
 from .diff import hello        # src/analysta/__init__.py
 __all__ = ["hello"]
 
+"""Public Analysta interface"""
+from .delta import Delta
+
+__all__: list[str] = ["Delta"]
+__version__: str = "0.0.1"
