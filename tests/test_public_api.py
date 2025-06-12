@@ -15,7 +15,7 @@ def test_version_matches_about():
 
 
 def test_all_exports():
-    expected = {"Delta", "hello"}
+    expected = {"Delta", "hello", "trim_whitespace"}
     assert set(analysta.__all__) == expected
     for name in expected:
         assert hasattr(analysta, name)

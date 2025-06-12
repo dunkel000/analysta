@@ -45,6 +45,7 @@ print(delta.changed("price"))    # Row(s) where price changed
 - Tolerant numeric diffs (absolute & relative)
 - Highlight changed columns
 - Built for analysts, not just engineers
+- Automatic trimming of leading/trailing whitespace
 - CLI and HTML reporting coming soon
 
 ## 📄 License
