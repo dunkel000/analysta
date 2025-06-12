@@ -17,3 +17,14 @@ def test_changed_returns_only_modified_rows():
     expected = pd.DataFrame({"id": [2], "price_a": [200], "price_b": [250]})
     pd.testing.assert_frame_equal(result, expected)
 
+
+def test_whitespace_is_trimmed():
+    df_a = pd.DataFrame({"id": [" 1"], "name": ["Alice "]})
+    df_b = pd.DataFrame({"id": ["1"], "name": ["Alice"]})
+
+    delta = Delta(df_a, df_b, keys="id")
+
+    assert delta.unmatched_a.empty
+    assert delta.unmatched_b.empty
+    assert delta.mismatches.empty
+

@@ -4,6 +4,8 @@ Copyright (c) 2025  MIT License
 """
 from __future__ import annotations
 
+from .diff import trim_whitespace
+
 import pandas as pd
 
 
@@ -30,8 +32,8 @@ class Delta:  # pylint: disable=too-few-public-methods
         abs_tol: float = 0.0,
         rel_tol: float = 0.0,
     ) -> None:
-        self.df_a = df_a.copy()
-        self.df_b = df_b.copy()
+        self.df_a = trim_whitespace(df_a.copy())
+        self.df_b = trim_whitespace(df_b.copy())
         self.keys = [keys] if isinstance(keys, str) else list(keys)
         self.abs_tol = abs_tol
         self.rel_tol = rel_tol
