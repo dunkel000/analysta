@@ -2,11 +2,10 @@
 #
 # SPDX-License-Identifier: MIT
 
-from .diff import hello        # src/analysta/__init__.py
-__all__ = ["hello"]
+"""Public Analysta interface."""
 
-"""Public Analysta interface"""
 from .delta import Delta
+from .diff import hello
+from .__about__ import __version__
 
-__all__: list[str] = ["Delta"]
-__version__: str = "0.0.1"
+__all__ = ["Delta", "hello"]
