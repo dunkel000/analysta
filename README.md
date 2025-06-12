@@ -27,7 +27,7 @@ Python 3.8 or higher is required.
 ## ⚡ Quick Example
 
 ```python
-from analysta import Delta
+from analysta import Delta, find_duplicates
 import pandas as pd
 
 df1 = pd.DataFrame({"id": [1, 2], "price": [100, 200]})
@@ -37,6 +37,7 @@ delta = Delta(df1, df2, keys=["id"])
 print(delta.unmatched_a)         # Rows in df1 not in df2
 print(delta.unmatched_b)         # Rows in df2 not in df1
 print(delta.changed("price"))    # Row(s) where price changed
+print(find_duplicates(df1, column="id"))  # Duplicates by column
 ```
 
 ## ✨ Features
@@ -46,6 +47,7 @@ print(delta.changed("price"))    # Row(s) where price changed
 - Highlight changed columns
 - Built for analysts, not just engineers
 - Automatic trimming of leading/trailing whitespace
+- Detect duplicate rows with optional counts
 - CLI and HTML reporting coming soon
 
 ## 📄 License

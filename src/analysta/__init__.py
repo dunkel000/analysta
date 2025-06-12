@@ -5,7 +5,7 @@
 """Public Analysta interface."""
 
 from .delta import Delta
-from .diff import hello, trim_whitespace
+from .diff import hello, trim_whitespace, find_duplicates
 from .__about__ import __version__
 
-__all__ = ["Delta", "hello", "trim_whitespace"]
+__all__ = ["Delta", "hello", "trim_whitespace", "find_duplicates"]
