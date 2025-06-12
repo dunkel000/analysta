@@ -3,8 +3,9 @@
 [![PyPI - Version](https://img.shields.io/pypi/v/analysta.svg)](https://pypi.org/project/analysta)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/analysta.svg)](https://pypi.org/project/analysta)
 
-**A Python library for comparing pandas DataFrames using primary keys, tolerances, and audit-friendly diffs.**  
-Easily detect mismatches, missing rows, and cell-level changes between two datasets.
+**A Python library for comparing pandas DataFrames using primary keys,**
+tolerances, and audit-friendly diffs.** Easily detect mismatches,
+missing rows, and cell-level changes between two datasets.
 
 -----
 
