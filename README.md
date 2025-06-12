@@ -21,7 +21,7 @@ Easily detect mismatches, missing rows, and cell-level changes between two datas
 pip install analysta
 ```
 
-Python 3.9 or higher is required.
+Python 3.8 or higher is required.
 
 ## ⚡ Quick Example
 
