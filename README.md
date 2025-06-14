@@ -37,13 +37,15 @@ import analysta as nl
 import analysta as nl
 import pandas as pd
 
-df1 = pd.DataFrame({"id": [1, 2], "price": [100, 200]})
-df2 = pd.DataFrame({"id": [1, 2], "price": [100, 250]})
+# Row 1 exists only in df1, row 4 only in df2
+# Row 3 exists in both but has a different price
+df1 = pd.DataFrame({"id": [1, 2, 3], "price": [100, 200, 300]})
+df2 = pd.DataFrame({"id": [2, 3, 4], "price": [200, 250, 400]})
 
-delta = nl.Delta(df1, df2, keys=["id"])
-print(delta.unmatched_a)         # Rows in df1 not in df2
-print(delta.unmatched_b)         # Rows in df2 not in df1
-print(delta.changed("price"))    # Row(s) where price changed
+delta = nl.Delta(df1, df2, keys="id")
+print(delta.unmatched_a)         # → id=1
+print(delta.unmatched_b)         # → id=4
+print(delta.changed("price"))    # → id=3
 print(nl.find_duplicates(df1, column="id"))  # Duplicates by column
 ```
 
@@ -59,7 +61,10 @@ df_a = pd.DataFrame({"id": [1, 2], "value": [100.0, 200.005]})
 df_b = pd.DataFrame({"id": [1, 2], "value": [100.0, 200.0]})
 
 delta = nl.Delta(df_a, df_b, keys="id", abs_tol=0.01)
-print(delta.changed("value"))
+print(delta.changed("value"))  # diff 0.005 < 0.01 → empty
+
+delta = nl.Delta(df_a, df_b, keys="id", abs_tol=0.001)
+print(delta.changed("value"))  # diff 0.005 > 0.001 → id=2
 ```
 
 ### Counting duplicates
