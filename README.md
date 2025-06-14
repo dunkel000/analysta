@@ -25,20 +25,26 @@ pip install analysta
 
 Python 3.8 or higher is required.
 
+For a concise import, you can alias the package:
+
+```python
+import analysta as nl
+```
+
 ## ⚡ Quick Example
 
 ```python
-from analysta import Delta, find_duplicates
+import analysta as nl
 import pandas as pd
 
 df1 = pd.DataFrame({"id": [1, 2], "price": [100, 200]})
 df2 = pd.DataFrame({"id": [1, 2], "price": [100, 250]})
 
-delta = Delta(df1, df2, keys=["id"])
+delta = nl.Delta(df1, df2, keys=["id"])
 print(delta.unmatched_a)         # Rows in df1 not in df2
 print(delta.unmatched_b)         # Rows in df2 not in df1
 print(delta.changed("price"))    # Row(s) where price changed
-print(find_duplicates(df1, column="id"))  # Duplicates by column
+print(nl.find_duplicates(df1, column="id"))  # Duplicates by column
 ```
 
 ## 📚 More Examples
@@ -46,13 +52,13 @@ print(find_duplicates(df1, column="id"))  # Duplicates by column
 ### Tolerant numeric diffs
 
 ```python
-from analysta import Delta, find_duplicates, trim_whitespace
+import analysta as nl
 import pandas as pd
 
 df_a = pd.DataFrame({"id": [1, 2], "value": [100.0, 200.005]})
 df_b = pd.DataFrame({"id": [1, 2], "value": [100.0, 200.0]})
 
-delta = Delta(df_a, df_b, keys="id", abs_tol=0.01)
+delta = nl.Delta(df_a, df_b, keys="id", abs_tol=0.01)
 print(delta.changed("value"))
 ```
 
@@ -60,14 +66,14 @@ print(delta.changed("value"))
 
 ```python
 df = pd.DataFrame({"id": [1, 1, 2, 2, 2]})
-print(find_duplicates(df, column="id", counts=True))
+print(nl.find_duplicates(df, column="id", counts=True))
 ```
 
 ### Trimming whitespace
 
 ```python
 df = pd.DataFrame({"id": ["1"], "name": [" Alice "]})
-clean = trim_whitespace(df)
+clean = nl.trim_whitespace(df)
 print(clean)
 ```
 
