@@ -14,7 +14,16 @@ def hello() -> None:
 def trim_whitespace(df: pd.DataFrame) -> pd.DataFrame:
     """Return *df* with leading/trailing whitespace stripped from strings."""
 
-    return df.map(lambda x: x.strip() if isinstance(x, str) else x)
+    trimmed = df.copy()
+
+    for column in trimmed.columns:
+        series = trimmed[column]
+        if pd.api.types.is_object_dtype(series) or pd.api.types.is_string_dtype(series):
+            trimmed[column] = series.apply(
+                lambda value: value.strip() if isinstance(value, str) else value
+            )
+
+    return trimmed
 
 
 def find_duplicates(
