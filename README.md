@@ -23,7 +23,7 @@ missing rows, and cell-level changes between two datasets.
 pip install analysta
 ```
 
-Python 3.8 or higher is required.
+Python 3.10 or higher is required.
 
 For a concise import, you can alias the package:
 
