@@ -19,6 +19,23 @@ from pandas.api.types import (
 
 Issue = dict[str, str]
 
+_MISSING_VALUE_TOKENS = {
+    "",
+    "-",
+    "na",
+    "n/a",
+    "n.a.",
+    "null",
+    "none",
+    "nan",
+    "missing",
+    "nd",
+    "n.d.",
+    "not applicable",
+    "not detected",
+    "not determined",
+}
+
 
 def audit_dataframe(
     df: pd.DataFrame,
@@ -61,6 +78,8 @@ def audit_dataframe(
     expected_dtypes = expected_dtypes or {}
     date_formats = date_formats or {}
     distribution_expectations = distribution_expectations or {}
+
+    normalised_df = _normalise_dataframe(df)
 
     for column, allow in allow_nulls.items():
         if allow:
@@ -130,6 +149,34 @@ def audit_dataframe(
         result = pd.DataFrame(issues, columns=["column", "issue", "details"])
         return result.sort_values(["column", "issue"], ignore_index=True)
     return pd.DataFrame(columns=["column", "issue", "details"])
+
+
+def _normalise_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    normalised = df.copy()
+    for column in normalised.columns:
+        normalised[column] = _normalise_series(normalised[column])
+    return normalised
+
+
+def _normalise_series(series: pd.Series) -> pd.Series:
+    if not (is_string_dtype(series.dtype) or series.dtype == "object"):
+        return series
+
+    def _convert(value: Any) -> Any:
+        if isinstance(value, bytes):
+            try:
+                value = value.decode()
+            except Exception:  # pragma: no cover - very unlikely
+                return value
+        if isinstance(value, str):
+            trimmed = value.strip()
+            lowered = trimmed.lower()
+            if lowered in _MISSING_VALUE_TOKENS:
+                return np.nan
+            return trimmed
+        return value
+
+    return series.map(_convert)
 
 
 def _type_mismatch_mask(series: pd.Series, expected: Any) -> pd.Series | None:
