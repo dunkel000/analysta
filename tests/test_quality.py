@@ -22,6 +22,24 @@ def test_audit_dataframe_flags_forbidden_nulls() -> None:
     assert "1" in null_issue["details"]  # index of the null value
 
 
+def test_audit_dataframe_flags_missing_value_tokens_when_nulls_forbidden() -> None:
+    df = pd.DataFrame({"value": ["ND", "ok"]})
+
+    issues = audit_dataframe(df, allow_nulls={"value": False})
+
+    assert "null_forbidden" in issues["issue"].values
+    null_issue = issues[issues["issue"] == "null_forbidden"].iloc[0]
+    assert "0" in null_issue["details"]
+
+
+def test_audit_dataframe_allows_missing_value_tokens_when_nulls_permitted() -> None:
+    df = pd.DataFrame({"value": ["NA", "10"]})
+
+    issues = audit_dataframe(df, allow_nulls={"value": True})
+
+    assert issues.empty
+
+
 def test_audit_dataframe_detects_type_mismatches() -> None:
     df = pd.DataFrame(
         {

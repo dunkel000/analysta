@@ -67,7 +67,7 @@ def audit_dataframe(
             continue
         if column not in df.columns:
             continue
-        series = df[column]
+        series = normalised_df[column]
         null_mask = series.isna()
         if null_mask.any():
             indices = list(series.index[null_mask])
@@ -82,7 +82,7 @@ def audit_dataframe(
     for column, expected in expected_dtypes.items():
         if column not in df.columns:
             continue
-        series = df[column]
+        series = normalised_df[column]
         non_null_series = series[~series.isna()]
         if non_null_series.empty:
             continue
@@ -102,7 +102,7 @@ def audit_dataframe(
     for column, formats in date_formats.items():
         if column not in df.columns:
             continue
-        series = df[column]
+        series = normalised_df[column]
         non_null_series = series[~series.isna()]
         if non_null_series.empty:
             continue
