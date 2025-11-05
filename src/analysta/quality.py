@@ -26,7 +26,7 @@ def audit_dataframe(
     allow_nulls: Mapping[str, bool] | None = None,
     expected_dtypes: Mapping[str, Any] | None = None,
     date_formats: Mapping[str, str | Sequence[str]] | None = None,
-    infer_dtypes: bool = True,
+    distribution_expectations: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> pd.DataFrame:
     """Inspect *df* for basic data quality issues.
 
@@ -44,10 +44,11 @@ def audit_dataframe(
     date_formats:
         Mapping of column name to the ``strftime`` format string (or sequence of
         strings) that should successfully parse values in the column.
-    infer_dtypes:
-        If ``True`` (the default), inspect columns not listed in ``expected_dtypes``
-        to infer their predominant dtype and surface values that do not match the
-        inferred category.
+    distribution_expectations:
+        Optional mapping of column name to distribution expectations. Supports
+        ``quantiles`` for percentile bounds (as a 2-tuple like ``(0.05, 0.95)``)
+        and ``delta`` thresholds (``{"periods": 1, "max": <value>}``) for
+        rolling differences in numeric or datetime columns.
 
     Returns
     -------
@@ -59,6 +60,7 @@ def audit_dataframe(
     allow_nulls = allow_nulls or {}
     expected_dtypes = expected_dtypes or {}
     date_formats = date_formats or {}
+    distribution_expectations = distribution_expectations or {}
 
     for column, allow in allow_nulls.items():
         if allow:
@@ -117,31 +119,12 @@ def audit_dataframe(
                 }
             )
 
-    if infer_dtypes:
-        for column in df.columns:
-            if column in expected_dtypes:
-                continue
-            series = df[column]
-            non_null_series = series[~series.isna()]
-            if non_null_series.empty:
-                continue
-            inferred_category = _infer_predominant_category(non_null_series)
-            if inferred_category is None:
-                continue
-            mismatch_mask = non_null_series.map(
-                lambda value: _categorise_value(value) != inferred_category
-            )
-            if mismatch_mask.any():
-                invalid = non_null_series[mismatch_mask]
-                issues.append(
-                    {
-                        "column": column,
-                        "issue": "inferred_dtype_mismatch",
-                        "details": _summarise_invalid_values(
-                            inferred_category, invalid
-                        ),
-                    }
-                )
+    for column, expectation in distribution_expectations.items():
+        if column not in df.columns:
+            continue
+        series = df[column]
+        outlier_issues = _detect_outliers(column, series, expectation)
+        issues.extend(outlier_issues)
 
     if issues:
         result = pd.DataFrame(issues, columns=["column", "issue", "details"])
@@ -243,27 +226,150 @@ def _summarise_invalid_values(expected: Any, invalid: pd.Series) -> str:
     return f"Expected {expected!r}; rows {indices}; samples: {sample_values}"
 
 
-def _infer_predominant_category(series: pd.Series) -> str | None:
-    categories = series.map(_categorise_value).dropna()
-    if categories.empty:
-        return None
-    counts = categories.value_counts()
-    if counts.empty:
-        return None
-    return counts.idxmax()
+def _summarise_outliers(
+    values: pd.Series,
+    indices: list[Any],
+    *,
+    bounds: tuple[Any, Any] | None = None,
+    delta: Any | None = None,
+) -> str:
+    summary = _summarise_values(values, indices)
+    extras: list[str] = []
+    if bounds is not None:
+        extras.append(f"bounds={bounds}")
+    if delta is not None:
+        extras.append(f"delta>{delta}")
+    if extras:
+        summary = f"{summary}; {'; '.join(extras)}"
+    return summary
 
 
-def _categorise_value(value: Any) -> str | None:
-    if value is None:
+def _detect_outliers(
+    column: str, series: pd.Series, expectation: Mapping[str, Any]
+) -> list[Issue]:
+    non_null = series[~series.isna()]
+    if non_null.empty:
+        return []
+
+    converted, kind = _coerce_numeric_or_datetime(non_null)
+    if converted is None or kind is None:
+        return []
+
+    issues: list[Issue] = []
+
+    quantiles = expectation.get("quantiles")
+    if quantiles is not None:
+        bounds = _quantile_bounds(converted, quantiles)
+        if bounds is not None:
+            lower, upper = bounds
+            valid = converted.dropna()
+            mask = valid.lt(lower) | valid.gt(upper)
+            outlier_indices = list(valid.index[mask])
+            if outlier_indices:
+                values = non_null.loc[outlier_indices]
+                issues.append(
+                    {
+                        "column": column,
+                        "issue": "outlier",
+                        "details": _summarise_outliers(
+                            values,
+                            outlier_indices,
+                            bounds=(lower, upper),
+                        ),
+                    }
+                )
+
+    delta_config = expectation.get("delta") or expectation.get("rolling_delta")
+    if delta_config is not None:
+        delta_threshold = delta_config.get("max")
+        if delta_threshold is None:
+            delta_threshold = delta_config.get("threshold")
+        periods = int(delta_config.get("periods", 1))
+        deltas = _rolling_deltas(converted, periods)
+        if deltas is not None and delta_threshold is not None:
+            delta_limit = _normalise_delta_threshold(delta_threshold, kind)
+            if delta_limit is not None:
+                mask = deltas > delta_limit
+                outlier_indices = list(deltas.index[mask])
+                if outlier_indices:
+                    values = non_null.loc[outlier_indices]
+                    issues.append(
+                        {
+                            "column": column,
+                            "issue": "outlier",
+                            "details": _summarise_outliers(
+                                values,
+                                outlier_indices,
+                                delta=delta_limit,
+                            ),
+                        }
+                    )
+
+    return issues
+
+
+def _coerce_numeric_or_datetime(
+    series: pd.Series,
+) -> tuple[pd.Series | None, str | None]:
+    if is_numeric_dtype(series):
+        numeric = pd.to_numeric(series, errors="coerce")
+        return numeric, "numeric"
+    if is_datetime64_any_dtype(series):
+        datetime_series = pd.to_datetime(series, errors="coerce")
+        return datetime_series, "datetime"
+
+    numeric = pd.to_numeric(series, errors="coerce")
+    if numeric.notna().any():
+        return numeric, "numeric"
+
+    datetime_series = pd.to_datetime(series, errors="coerce")
+    if datetime_series.notna().any():
+        return datetime_series, "datetime"
+
+    return None, None
+
+
+def _quantile_bounds(
+    series: pd.Series, quantiles: Sequence[float] | tuple[float, float]
+) -> tuple[Any, Any] | None:
+    try:
+        lower_q, upper_q = quantiles  # type: ignore[misc]
+    except (TypeError, ValueError):
         return None
-    if isinstance(value, (pd.Timestamp, np.datetime64, datetime)):
-        return "datetime"
-    if isinstance(value, (bool, np.bool_)):
-        return "boolean"
-    if isinstance(value, (int, np.integer)) and not isinstance(value, (bool, np.bool_)):
-        return "integer"
-    if isinstance(value, (float, np.floating)):
-        return "float"
-    if isinstance(value, str):
-        return "string"
-    return type(value).__name__
+
+    valid = series.dropna()
+    if valid.empty:
+        return None
+
+    try:
+        bounds = valid.quantile([lower_q, upper_q])
+    except (TypeError, ValueError):
+        return None
+
+    if bounds.isna().any():
+        return None
+
+    return bounds.iloc[0], bounds.iloc[1]
+
+
+def _rolling_deltas(series: pd.Series, periods: int) -> pd.Series | None:
+    valid = series.dropna()
+    if valid.empty:
+        return None
+    deltas = valid.diff(periods).abs()
+    deltas = deltas.dropna()
+    if deltas.empty:
+        return None
+    return deltas
+
+
+def _normalise_delta_threshold(threshold: Any, kind: str) -> Any | None:
+    if kind == "datetime":
+        try:
+            return pd.to_timedelta(threshold)
+        except (TypeError, ValueError):
+            return None
+    try:
+        return float(threshold)
+    except (TypeError, ValueError):
+        return None

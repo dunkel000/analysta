@@ -60,29 +60,36 @@ def test_audit_dataframe_validates_date_formats() -> None:
     assert "31-12-2023" in date_issue["details"]
 
 
-def test_audit_dataframe_infers_dtypes_for_unexpected_columns() -> None:
-    df = pd.DataFrame(
-        {
-            "mostly_int": [1, 2, 3, "oops", 4.5],
-        }
+def test_audit_dataframe_flags_numeric_outliers() -> None:
+    in_range = [10] * 95
+    outliers = [100] * 5
+    df = pd.DataFrame({"metric": in_range + outliers})
+
+    issues = audit_dataframe(
+        df,
+        distribution_expectations={"metric": {"quantiles": (0.05, 0.95)}},
     )
 
-    issues = audit_dataframe(df)
-
-    assert "inferred_dtype_mismatch" in issues["issue"].values
-    inferred_issue = issues[issues["issue"] == "inferred_dtype_mismatch"].iloc[0]
-    assert inferred_issue["column"] == "mostly_int"
-    assert "integer" in inferred_issue["details"]
-    assert "oops" in inferred_issue["details"]
+    assert "outlier" in issues["issue"].values
+    outlier_issue = issues[issues["issue"] == "outlier"].iloc[0]
+    assert outlier_issue["column"] == "metric"
+    for index in range(95, 100):
+        assert str(index) in outlier_issue["details"]
 
 
-def test_audit_dataframe_inferred_dtype_can_be_disabled() -> None:
-    df = pd.DataFrame(
-        {
-            "mostly_int": [1, 2, 3, "oops", 4.5],
-        }
+def test_audit_dataframe_flags_datetime_outliers() -> None:
+    base = pd.Timestamp("2024-01-01")
+    in_range = [base + pd.Timedelta(days=offset) for offset in range(95)]
+    outliers = [base + pd.Timedelta(days=365 + offset) for offset in range(5)]
+    df = pd.DataFrame({"timestamp": in_range + outliers})
+
+    issues = audit_dataframe(
+        df,
+        distribution_expectations={"timestamp": {"quantiles": (0.05, 0.95)}},
     )
 
-    issues = audit_dataframe(df, infer_dtypes=False)
-
-    assert issues.empty
+    assert "outlier" in issues["issue"].values
+    outlier_issue = issues[issues["issue"] == "outlier"].iloc[0]
+    assert outlier_issue["column"] == "timestamp"
+    for index in range(95, 100):
+        assert str(index) in outlier_issue["details"]

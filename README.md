@@ -82,6 +82,22 @@ clean = nl.trim_whitespace(df)
 print(clean)
 ```
 
+### Working with CSV and Excel files
+
+```python
+import analysta as nl
+
+transactions = nl.read_csv("transactions.csv", dtype={"id": "Int64"})
+nl.write_csv(transactions, "transactions_clean.csv", index=False)
+
+sales = nl.read_excel("sales.xlsx", sheet_name="Raw")
+nl.write_excel(sales, "sales_clean.xlsx", sheet_name="Clean", index=False)
+```
+
+> [!TIP]
+> Excel support relies on `openpyxl` for `.xlsx` files. Install it with
+> `pip install openpyxl` if it is not already available in your environment.
+
 ### Auditing data quality
 
 ```python
@@ -113,6 +129,7 @@ print(issues)
 - Built for analysts, not just engineers
 - Automatic trimming of leading/trailing whitespace
 - Detect duplicate rows with optional counts
+- CSV and Excel import/export helpers that delegate to pandas
 - Data quality audit helpers for nulls, types, and dates
 - CLI and HTML reporting coming soon
 
