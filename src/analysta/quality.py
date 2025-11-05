@@ -25,6 +25,7 @@ def audit_dataframe(
     allow_nulls: Mapping[str, bool] | None = None,
     expected_dtypes: Mapping[str, Any] | None = None,
     date_formats: Mapping[str, str | Sequence[str]] | None = None,
+    missing_value_tokens: Sequence[str] | None = ("ND", "NA", "N/A", "NULL"),
 ) -> pd.DataFrame:
     """Inspect *df* for basic data quality issues.
 
@@ -42,6 +43,10 @@ def audit_dataframe(
     date_formats:
         Mapping of column name to the ``strftime`` format string (or sequence of
         strings) that should successfully parse values in the column.
+    missing_value_tokens:
+        Iterable of placeholder tokens that should be treated as missing values
+        during validation. By default common tokens like ``"ND"`` and
+        ``"N/A"`` are converted to :class:`pandas.NA`.
 
     Returns
     -------
@@ -53,13 +58,18 @@ def audit_dataframe(
     allow_nulls = allow_nulls or {}
     expected_dtypes = expected_dtypes or {}
     date_formats = date_formats or {}
+    tokens = list(missing_value_tokens) if missing_value_tokens is not None else []
+
+    normalised_df = df.copy(deep=True)
+    if tokens:
+        normalised_df = normalised_df.replace(tokens, pd.NA)
 
     for column, allow in allow_nulls.items():
         if allow:
             continue
         if column not in df.columns:
             continue
-        series = df[column]
+        series = normalised_df[column]
         null_mask = series.isna()
         if null_mask.any():
             indices = list(series.index[null_mask])
@@ -74,7 +84,7 @@ def audit_dataframe(
     for column, expected in expected_dtypes.items():
         if column not in df.columns:
             continue
-        series = df[column]
+        series = normalised_df[column]
         non_null_series = series[~series.isna()]
         if non_null_series.empty:
             continue
@@ -94,7 +104,7 @@ def audit_dataframe(
     for column, formats in date_formats.items():
         if column not in df.columns:
             continue
-        series = df[column]
+        series = normalised_df[column]
         non_null_series = series[~series.isna()]
         if non_null_series.empty:
             continue
