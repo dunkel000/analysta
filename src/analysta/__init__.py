@@ -6,6 +6,7 @@
 
 from .delta import Delta
 from .diff import hello, trim_whitespace, find_duplicates
+from .quality import audit_dataframe
 from .__about__ import __version__
 
-__all__ = ["Delta", "hello", "trim_whitespace", "find_duplicates"]
+__all__ = ["Delta", "hello", "trim_whitespace", "find_duplicates", "audit_dataframe"]

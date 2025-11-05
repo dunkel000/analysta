@@ -82,6 +82,29 @@ clean = nl.trim_whitespace(df)
 print(clean)
 ```
 
+### Auditing data quality
+
+```python
+import analysta as nl
+import pandas as pd
+
+df = pd.DataFrame(
+    {
+        "id": [1, 2, 3],
+        "age": ["34", 28, None],
+        "signup_date": ["2024-01-01", "01/03/2024", "31-12-2023"],
+    }
+)
+
+issues = nl.audit_dataframe(
+    df,
+    allow_nulls={"age": False},
+    expected_dtypes={"age": "int64"},
+    date_formats={"signup_date": ["%Y-%m-%d", "%m/%d/%Y"]},
+)
+print(issues)
+```
+
 ## ✨ Features
 
 - Key-based row comparison: `"A not in B"` and vice versa
@@ -90,6 +113,7 @@ print(clean)
 - Built for analysts, not just engineers
 - Automatic trimming of leading/trailing whitespace
 - Detect duplicate rows with optional counts
+- Data quality audit helpers for nulls, types, and dates
 - CLI and HTML reporting coming soon
 
 ## 📄 License
