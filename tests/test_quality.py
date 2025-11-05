@@ -58,3 +58,31 @@ def test_audit_dataframe_validates_date_formats() -> None:
     date_issue = issues[issues["issue"] == "invalid_date_format"].iloc[0]
     assert date_issue["column"] == "date"
     assert "31-12-2023" in date_issue["details"]
+
+
+def test_audit_dataframe_infers_dtypes_for_unexpected_columns() -> None:
+    df = pd.DataFrame(
+        {
+            "mostly_int": [1, 2, 3, "oops", 4.5],
+        }
+    )
+
+    issues = audit_dataframe(df)
+
+    assert "inferred_dtype_mismatch" in issues["issue"].values
+    inferred_issue = issues[issues["issue"] == "inferred_dtype_mismatch"].iloc[0]
+    assert inferred_issue["column"] == "mostly_int"
+    assert "integer" in inferred_issue["details"]
+    assert "oops" in inferred_issue["details"]
+
+
+def test_audit_dataframe_inferred_dtype_can_be_disabled() -> None:
+    df = pd.DataFrame(
+        {
+            "mostly_int": [1, 2, 3, "oops", 4.5],
+        }
+    )
+
+    issues = audit_dataframe(df, infer_dtypes=False)
+
+    assert issues.empty

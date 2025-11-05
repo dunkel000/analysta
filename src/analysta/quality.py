@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from datetime import datetime
 from typing import Any
 
 import numpy as np
@@ -25,6 +26,7 @@ def audit_dataframe(
     allow_nulls: Mapping[str, bool] | None = None,
     expected_dtypes: Mapping[str, Any] | None = None,
     date_formats: Mapping[str, str | Sequence[str]] | None = None,
+    infer_dtypes: bool = True,
 ) -> pd.DataFrame:
     """Inspect *df* for basic data quality issues.
 
@@ -42,6 +44,10 @@ def audit_dataframe(
     date_formats:
         Mapping of column name to the ``strftime`` format string (or sequence of
         strings) that should successfully parse values in the column.
+    infer_dtypes:
+        If ``True`` (the default), inspect columns not listed in ``expected_dtypes``
+        to infer their predominant dtype and surface values that do not match the
+        inferred category.
 
     Returns
     -------
@@ -110,6 +116,32 @@ def audit_dataframe(
                     "details": _summarise_values(invalid, list(invalid.index)),
                 }
             )
+
+    if infer_dtypes:
+        for column in df.columns:
+            if column in expected_dtypes:
+                continue
+            series = df[column]
+            non_null_series = series[~series.isna()]
+            if non_null_series.empty:
+                continue
+            inferred_category = _infer_predominant_category(non_null_series)
+            if inferred_category is None:
+                continue
+            mismatch_mask = non_null_series.map(
+                lambda value: _categorise_value(value) != inferred_category
+            )
+            if mismatch_mask.any():
+                invalid = non_null_series[mismatch_mask]
+                issues.append(
+                    {
+                        "column": column,
+                        "issue": "inferred_dtype_mismatch",
+                        "details": _summarise_invalid_values(
+                            inferred_category, invalid
+                        ),
+                    }
+                )
 
     if issues:
         result = pd.DataFrame(issues, columns=["column", "issue", "details"])
@@ -209,3 +241,29 @@ def _summarise_invalid_values(expected: Any, invalid: pd.Series) -> str:
     sample_values = invalid.astype(str).head(5).tolist()
     indices = list(invalid.index)
     return f"Expected {expected!r}; rows {indices}; samples: {sample_values}"
+
+
+def _infer_predominant_category(series: pd.Series) -> str | None:
+    categories = series.map(_categorise_value).dropna()
+    if categories.empty:
+        return None
+    counts = categories.value_counts()
+    if counts.empty:
+        return None
+    return counts.idxmax()
+
+
+def _categorise_value(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, (pd.Timestamp, np.datetime64, datetime)):
+        return "datetime"
+    if isinstance(value, (bool, np.bool_)):
+        return "boolean"
+    if isinstance(value, (int, np.integer)) and not isinstance(value, (bool, np.bool_)):
+        return "integer"
+    if isinstance(value, (float, np.floating)):
+        return "float"
+    if isinstance(value, str):
+        return "string"
+    return type(value).__name__
