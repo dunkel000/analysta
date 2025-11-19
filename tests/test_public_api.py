@@ -21,6 +21,7 @@ def test_all_exports():
         "trim_whitespace",
         "find_duplicates",
         "audit_dataframe",
+        "expect_df",
         "read_csv",
         "write_csv",
         "read_excel",
