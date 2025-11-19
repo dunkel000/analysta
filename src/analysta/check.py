@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import re
-from typing import Iterable
+from typing import Callable, Iterable
 
 import numpy as np
 import pandas as pd
@@ -74,10 +74,49 @@ class ExpectationReport:
     passed: bool
     column_results: list[ColumnResult] = field(default_factory=list)
     row_results: list[RowRuleResult] = field(default_factory=list)
+    custom_results: list[RowRuleResult] = field(default_factory=list)
+
+    def to_human_readable(self) -> str:
+        """Return a readable, multi-line report of the validation results."""
+
+        status = "PASSED" if self.passed else "FAILED"
+        lines = [f"Expectation report: {status}"]
+
+        if self.column_results:
+            lines.append("Columns:")
+            for result in self.column_results:
+                result_status = "PASS" if result.passed else "FAIL"
+                details = f" -> {' | '.join(result.diagnostics)}" if result.diagnostics else ""
+                lines.append(f"- {result.column}: {result_status}{details}")
+
+        if self.row_results:
+            lines.append("Row rules:")
+            for result in self.row_results:
+                result_status = "PASS" if result.passed else "FAIL"
+                details = f" -> {result.message}" if result.message else ""
+                lines.append(f"- {result.description}: {result_status}{details}")
+
+        if self.custom_results:
+            lines.append("Custom validators:")
+            for result in self.custom_results:
+                result_status = "PASS" if result.passed else "FAIL"
+                details = f" -> {result.message}" if result.message else ""
+                lines.append(f"- {result.description}: {result_status}{details}")
+
+        return "\n".join(lines)
+
+    def __str__(self) -> str:  # pragma: no cover - alias for readability
+        return self.to_human_readable()
 
 
 def expect_df(
-    df: pd.DataFrame, expectations: str | Iterable[str], /, *, row_rules: Iterable[str] | None = None
+    df: pd.DataFrame,
+    expectations: str | Iterable[str],
+    /,
+    *,
+    row_rules: Iterable[str] | None = None,
+    validators: Iterable[RowRuleResult | tuple[str, Callable[[pd.DataFrame], object]] | Callable[[pd.DataFrame], object]]
+    | None = None,
 ) -> ExpectationReport:
     """Validate a DataFrame against Analysta-style expectations.
 
@@ -100,6 +139,11 @@ def expect_df(
     if row_rules:
         parsed_row_rules.extend(_parse_row_rules(row_rules))
 
+    custom_results: list[RowRuleResult] = []
+    if validators:
+        for validator in validators:
+            custom_results.append(_run_validator(df, validator))
+
     column_results: list[ColumnResult] = []
     for expectation in column_expectations:
         column_results.append(_validate_column(df, expectation))
@@ -108,8 +152,13 @@ def expect_df(
     for rule in parsed_row_rules:
         row_results.append(_validate_row_rule(df, rule))
 
-    passed = all(result.passed for result in column_results + row_results)
-    return ExpectationReport(passed=passed, column_results=column_results, row_results=row_results)
+    passed = all(result.passed for result in column_results + row_results + custom_results)
+    return ExpectationReport(
+        passed=passed,
+        column_results=column_results,
+        row_results=row_results,
+        custom_results=custom_results,
+    )
 
 
 def _parse_expectations(
@@ -153,6 +202,10 @@ def _parse_expectations(
 def _parse_column_body(name: str, body: str) -> ColumnExpectation:
     expectation = ColumnExpectation(name=name)
 
+    allowed_from_full_body = _extract_allowed_values(body)
+    if allowed_from_full_body:
+        expectation.allowed_values = allowed_from_full_body
+
     tokens = re.split(r"[,;]|\band\b", body, flags=re.IGNORECASE)
     for raw_token in tokens:
         token = raw_token.strip()
@@ -174,9 +227,10 @@ def _parse_column_body(name: str, body: str) -> ColumnExpectation:
         fmt = _extract_format(token)
         if fmt is not None:
             expectation.fmt = fmt
-        allowed = _extract_allowed_values(token)
-        if allowed:
-            expectation.allowed_values = allowed
+        if expectation.allowed_values is None:
+            allowed = _extract_allowed_values(token)
+            if allowed:
+                expectation.allowed_values = allowed
         regex = _extract_regex(token)
         if regex is not None:
             expectation.regex = regex
@@ -211,6 +265,7 @@ def _extract_allowed_values(token: str) -> set[str] | None:
         return None
 
     values_part = match.group(1).strip()
+    values_part = re.split(r";|\band\b", values_part, maxsplit=1, flags=re.IGNORECASE)[0].strip()
     values_part = values_part.strip("{}[]()")
     raw_values = [part.strip() for part in values_part.split("or")]
     values: list[str] = []
@@ -350,4 +405,42 @@ def _validate_row_rule(df: pd.DataFrame, rule: RowRule) -> RowRuleResult:
     if failing:
         message = f"rows failing rule '{rule.expression}': {failing}"
     return RowRuleResult(description=rule.description, passed=passed, failing_indices=failing, message=message)
+
+
+def _run_validator(
+    df: pd.DataFrame, validator: RowRuleResult | tuple[str, Callable[[pd.DataFrame], object]] | Callable[[pd.DataFrame], object]
+) -> RowRuleResult:
+    if isinstance(validator, RowRuleResult):
+        return validator
+
+    if isinstance(validator, tuple):
+        description, func = validator
+    else:
+        func = validator
+        description = getattr(func, "__name__", "custom validator")
+
+    outcome = func(df)
+
+    if isinstance(outcome, RowRuleResult):
+        return outcome
+
+    message: str | None = None
+    verdict = outcome
+    if isinstance(outcome, tuple) and len(outcome) == 2:
+        verdict, message = outcome
+
+    if isinstance(verdict, pd.Series):
+        mask = verdict.astype(bool)
+        failing = list(mask.index[~mask])
+        passed = not failing
+        detail = message or (f"rows failing custom validator '{description}': {failing}" if failing else None)
+        return RowRuleResult(description=description, passed=passed, failing_indices=failing, message=detail)
+
+    if isinstance(verdict, (bool, np.bool_)):
+        passed = bool(verdict)
+        failing = [] if passed else list(range(len(df)))
+        detail = message or (None if passed else f"validator '{description}' failed")
+        return RowRuleResult(description=description, passed=passed, failing_indices=failing, message=detail)
+
+    raise TypeError("custom validators must return a bool, pandas Series, or RowRuleResult")
 
