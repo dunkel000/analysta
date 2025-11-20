@@ -60,3 +60,18 @@ def find_duplicates(
         return dupes.groupby(subset).size().reset_index(name="count")
 
     return dupes.reset_index(drop=True)
+
+
+def duplicates(
+    df: pd.DataFrame,
+    column: str | None = None,
+    *,
+    counts: bool = False,
+) -> pd.DataFrame:
+    """Convenience alias for :func:`find_duplicates`.
+
+    This shorter name keeps examples concise while preserving
+    ``find_duplicates`` for backward compatibility.
+    """
+
+    return find_duplicates(df, column=column, counts=counts)

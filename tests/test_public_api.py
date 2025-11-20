@@ -19,6 +19,7 @@ def test_all_exports():
         "Delta",
         "hello",
         "trim_whitespace",
+        "duplicates",
         "find_duplicates",
         "audit_dataframe",
         "expect_df",
