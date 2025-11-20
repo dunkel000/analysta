@@ -46,7 +46,7 @@ delta = nl.Delta(df1, df2, keys="id")
 print(delta.unmatched_a)         # → id=1
 print(delta.unmatched_b)         # → id=4
 print(delta.changed("price"))    # → id=3
-print(nl.find_duplicates(df1, column="id"))  # Duplicates by column
+print(nl.duplicates(df1, column="id"))  # Duplicates by column
 ```
 
 ## 📚 More Examples
@@ -71,8 +71,12 @@ print(delta.changed("value"))  # diff 0.005 > 0.001 → id=2
 
 ```python
 df = pd.DataFrame({"id": [1, 1, 2, 2, 2]})
-print(nl.find_duplicates(df, column="id", counts=True))
+print(nl.duplicates(df, column="id", counts=True))
 ```
+
+> [!NOTE]
+> `nl.duplicates` is a short alias for `nl.find_duplicates` so existing code
+> keeps working while examples stay concise.
 
 ### Trimming whitespace
 

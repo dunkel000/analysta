@@ -5,7 +5,7 @@
 """Public Analysta interface."""
 
 from .delta import Delta
-from .diff import hello, trim_whitespace, find_duplicates
+from .diff import hello, trim_whitespace, find_duplicates, duplicates
 from .io import read_csv, write_csv, read_excel, write_excel
 from .quality import audit_dataframe
 from .check import expect_df
@@ -15,6 +15,7 @@ __all__ = [
     "Delta",
     "hello",
     "trim_whitespace",
+    "duplicates",
     "find_duplicates",
     "audit_dataframe",
     "expect_df",
