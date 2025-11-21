@@ -55,6 +55,78 @@ class Delta:  # pylint: disable=too-few-public-methods
         col_b = f"{column}_b"
         return self.mismatches[self.keys + [col_a, col_b]]
 
+    def to_html(self, path: str | None = None) -> str | None:
+        """
+        Generate an HTML report of the comparison.
+
+        Parameters
+        ----------
+        path : str, optional
+            File path to save the HTML report. If None, returns the HTML string.
+        """
+        from jinja2 import Template
+
+        template_str = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Analysta Delta Report</title>
+            <style>
+                body { font-family: sans-serif; margin: 2rem; }
+                h1 { color: #333; }
+                .summary { margin-bottom: 2rem; }
+                .summary-item { margin: 0.5rem 0; font-weight: bold; }
+                table { border-collapse: collapse; width: 100%; margin-bottom: 2rem; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; }
+                tr:nth-child(even) { background-color: #f9f9f9; }
+                .section-title { margin-top: 2rem; color: #555; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+            </style>
+        </head>
+        <body>
+            <h1>Analysta Delta Report</h1>
+            
+            <div class="summary">
+                <div class="summary-item">Rows in A only: {{ unmatched_a_count }}</div>
+                <div class="summary-item">Rows in B only: {{ unmatched_b_count }}</div>
+                <div class="summary-item">Mismatched rows: {{ mismatches_count }}</div>
+            </div>
+
+            {% if unmatched_a_count > 0 %}
+            <h2 class="section-title">Rows in A only (Top 50)</h2>
+            {{ unmatched_a_table }}
+            {% endif %}
+
+            {% if unmatched_b_count > 0 %}
+            <h2 class="section-title">Rows in B only (Top 50)</h2>
+            {{ unmatched_b_table }}
+            {% endif %}
+
+            {% if mismatches_count > 0 %}
+            <h2 class="section-title">Mismatches (Top 50)</h2>
+            {{ mismatches_table }}
+            {% endif %}
+        </body>
+        </html>
+        """
+
+        template = Template(template_str)
+        html = template.render(
+            unmatched_a_count=len(self.unmatched_a),
+            unmatched_b_count=len(self.unmatched_b),
+            mismatches_count=len(self.mismatches),
+            unmatched_a_table=self.unmatched_a.head(50).to_html(index=False, classes="table"),
+            unmatched_b_table=self.unmatched_b.head(50).to_html(index=False, classes="table"),
+            mismatches_table=self.mismatches.head(50).to_html(index=False, classes="table"),
+        )
+
+        if path:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(html)
+            return None
+        return html
+
+
     # ------------------------ internal logic ----------------------------- #
     def _build_diff_frames(self) -> None:
         # Outer merge tells us where rows exist

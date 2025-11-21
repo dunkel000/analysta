@@ -22,7 +22,14 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = ["pandas>=1.4"]
+dependencies = [
+  "pandas>=1.4",
+  "typer>=0.9.0",
+  "jinja2>=3.0",
+]
+
+[project.scripts]
+analysta = "analysta.cli:app"
 
 [project.urls]
 Documentation = "https://github.com/Diego-Ignacio Ortiz/analysta#readme"
@@ -57,3 +64,19 @@ exclude_lines = [
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
+
+[tool.ruff]
+line-length = 88
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "PL", "RUF"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+strict = true
+ignore_missing_imports = true

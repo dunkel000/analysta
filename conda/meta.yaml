@@ -1,0 +1,38 @@
+{% set name = "analysta" %}
+{% set version = "0.0.6" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  path: ..
+
+build:
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv
+  number: 0
+
+requirements:
+  host:
+    - python >=3.8
+    - hatchling
+    - pip
+  run:
+    - python >=3.8
+    - pandas >=1.4
+    - typer >=0.9.0
+    - jinja2 >=3.0
+
+test:
+  imports:
+    - analysta
+  commands:
+    - analysta --help
+    - analysta version
+
+about:
+  home: https://github.com/Diego-Ignacio Ortiz/analysta
+  summary: DataFrame Toolkit for Analysts
+  license: MIT
+  license_file: LICENSE.txt

@@ -13,8 +13,11 @@ missing rows, and cell-level changes between two datasets.
 
 - [Installation](#installation)
 - [Quick Example](#quick-example)
+- [CLI Usage](#cli-usage)
+- [HTML Reports](#html-reports)
 - [More Examples](#more-examples)
 - [Features](#features)
+- [Development](#development)
 - [License](#license)
 
 ## 🚀 Installation
@@ -47,6 +50,38 @@ print(delta.unmatched_a)         # → id=1
 print(delta.unmatched_b)         # → id=4
 print(delta.changed("price"))    # → id=3
 print(nl.duplicates(df1, column="id"))  # Duplicates by column
+```
+
+## 💻 CLI Usage
+
+`analysta` now includes a powerful CLI for quick comparisons directly from your terminal.
+
+```bash
+# Compare two CSV files
+analysta diff data/a.csv data/b.csv --key id
+
+# Generate an HTML report
+analysta diff data/a.csv data/b.csv --key id --out report.html
+
+# Check version
+analysta version
+```
+
+## 📊 HTML Reports
+
+Generate beautiful, shareable HTML reports of your data comparisons.
+
+```python
+import analysta as nl
+import pandas as pd
+
+df_a = pd.read_csv("data/a.csv")
+df_b = pd.read_csv("data/b.csv")
+
+delta = nl.Delta(df_a, df_b, keys="id")
+
+# Generate report
+delta.to_html("comparison_report.html")
 ```
 
 ## 📚 More Examples
@@ -130,12 +165,20 @@ print(issues)
 - Key-based row comparison: `"A not in B"` and vice versa
 - Tolerant numeric diffs (absolute & relative)
 - Highlight changed columns
+- **New!** CLI for terminal-based workflows
+- **New!** HTML reporting for easy sharing
 - Built for analysts, not just engineers
 - Automatic trimming of leading/trailing whitespace
 - Detect duplicate rows with optional counts
 - CSV and Excel import/export helpers that delegate to pandas
 - Data quality audit helpers for nulls, types, and dates
-- CLI and HTML reporting coming soon
+
+## 🛠️ Development
+
+This project uses modern Python tooling:
+- **Ruff** for linting and formatting
+- **Mypy** for static type checking
+- **Pre-commit** hooks to ensure code quality
 
 ## 📄 License
 
