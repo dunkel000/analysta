@@ -53,7 +53,22 @@ def version():
     """
     Show the version of analysta.
     """
-    typer.echo("analysta 0.0.6")
+    typer.echo("analysta 0.0.7")
+
+@app.command()
+def ui():
+    """
+    Launch the interactive web UI.
+    """
+    import subprocess
+    import sys
+    from pathlib import Path
+    
+    ui_file = Path(__file__).parent / "ui.py"
+    typer.echo("🚀 Launching Analysta Web UI...")
+    typer.echo("Opening browser at http://localhost:8501")
+    subprocess.run([sys.executable, "-m", "streamlit", "run", str(ui_file)])
+
 
 
 if __name__ == "__main__":

@@ -28,7 +28,7 @@ def trim_whitespace(df: pd.DataFrame) -> pd.DataFrame:
 
 def find_duplicates(
     df: pd.DataFrame,
-    column: str | None = None,
+    column: str | list[str] | None = None,
     *,
     counts: bool = False,
 ) -> pd.DataFrame:
@@ -38,8 +38,8 @@ def find_duplicates(
     ----------
     df : pandas.DataFrame
         DataFrame to check for duplicates.
-    column : str | None, optional
-        Column to consider when looking for duplicates. If ``None`` (default),
+    column : str | list[str] | None, optional
+        Column(s) to consider when looking for duplicates. If ``None`` (default),
         all columns are used.
     counts : bool, default ``False``
         When ``True``, return a DataFrame with duplicate values and how many
@@ -52,7 +52,12 @@ def find_duplicates(
         column(s).
     """
 
-    subset = [column] if column is not None else df.columns.tolist()
+    if column is None:
+        subset = df.columns.tolist()
+    elif isinstance(column, str):
+        subset = [column]
+    else:
+        subset = list(column)
     mask = df.duplicated(subset=subset, keep=False)
     dupes = df.loc[mask].copy()
 
