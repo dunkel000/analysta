@@ -32,7 +32,20 @@ test:
     - analysta version
 
 about:
-  home: https://github.com/Diego-Ignacio Ortiz/analysta
+  home: https://github.com/dunkel000/analysta
   summary: DataFrame Toolkit for Analysts
+  description: |
+    A Python library for comparing pandas DataFrames using primary keys,
+    tolerances, and audit-friendly diffs. Easily detect mismatches,
+    missing rows, and cell-level changes between two datasets.
+    
+    Features:
+    - Key-based row comparison
+    - Tolerant numeric diffs (absolute & relative)
+    - CLI for terminal-based workflows
+    - HTML reporting for easy sharing
+    - CSV and Excel import/export helpers
+    - Data quality audit helpers
+  dev_url: https://github.com/dunkel000/analysta
   license: MIT
   license_file: LICENSE.txt

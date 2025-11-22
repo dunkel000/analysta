@@ -32,9 +32,9 @@ dependencies = [
 analysta = "analysta.cli:app"
 
 [project.urls]
-Documentation = "https://github.com/Diego-Ignacio Ortiz/analysta#readme"
-Issues = "https://github.com/Diego-Ignacio Ortiz/analysta/issues"
-Source = "https://github.com/Diego-Ignacio Ortiz/analysta"
+Documentation = "https://github.com/dunkel000/analysta#readme"
+Issues = "https://github.com/dunkel000/analysta/issues"
+Source = "https://github.com/dunkel000/analysta"
 
 [tool.hatch.version]
 path = "src/analysta/__about__.py"
